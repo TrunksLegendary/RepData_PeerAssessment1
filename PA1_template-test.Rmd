@@ -5,23 +5,17 @@ output:
     keep_md: true
 ---
 
-## Make sure all required packages are loaded.
-
-```{r loadpackages, echo = TRUE}
-library(ggplot2)
-library(knitr)
-```
 
 ## Loading and preprocessing the data
 
-```{r load, echo=TRUE}
-unzip("activity.zip")
-activity <- read.csv('activity.csv',
-                     stringsAsFactors = F)
-```
+Download, extract and store the data in the `activity` data frame. Also transform the date field to `Date` format and print a sample of values to understand the data.
 
-```{r transform, echo=TRUE}
+```{r}
+unzip("activity.zip")
+activity <- read.csv("activity.csv")
 activity$date <- as.Date(activity$date)
+head(activity)
+summary(activity)
 ```
 
 ## What is mean total number of steps taken per day?
@@ -62,6 +56,8 @@ strftime( as.POSIXct(Sys.Date()) + as.difftime(round(maxtime/100), units="hours"
 
 ## Imputing missing values
 
+The total number of missing values (NAs) in the dataset:
+
 ```{r}
 sum(is.na(activity$steps))
 ```
@@ -87,6 +83,8 @@ median(tapply(fixed$steps, fixed$date, sum, na.rm = TRUE))
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+Append "Weekend" or "Weekday" to a new field, conditionally.
 
 ```{r}
 library(lattice)
