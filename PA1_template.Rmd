@@ -2,7 +2,8 @@
 title: "Reproducible Research: Peer Assessment 1"
 output: 
   html_document:
-    keep_md: true
+    fig_caption: yes
+    keep_md: yes
 ---
 
 ## Make sure all required packages are loaded.
@@ -16,29 +17,21 @@ library(knitr)
 
 ```{r load, echo=TRUE}
 unzip("activity.zip")
-activity <- read.csv('activity.csv',
-                     stringsAsFactors = F)
+data <- read.csv("activity.csv")
 ```
 
-```{r transform, echo=TRUE}
-activity$date <- as.Date(activity$date)
-```
 
 ## What is mean total number of steps taken per day?
 
 Histogram of the total number of steps taken day by day:
 
 ```{r}
-library(ggplot2)
-plot<-qplot(date, weight=activity$steps, data=activity, geom="histogram")
-print(plot)
-```
 
-Mean and Median number of steps per day:
+total_per_day <- tapply(data$steps, data$date, sum)
+hist(total_per_day, breaks = 15, main = "Frequency of Total Steps Taken Per Day", xlab = "Total number of steps", col = "lightblue")
+mean(total_per_day, na.rm = TRUE)
+median(total_per_day, na.rm = TRUE)
 
-```{r}
-mean(tapply(activity$steps, activity$date, sum, na.rm = TRUE))
-median(tapply(activity$steps, activity$date, sum, na.rm = TRUE))
 ```
 
 ## What is the average daily activity pattern?
@@ -46,55 +39,49 @@ median(tapply(activity$steps, activity$date, sum, na.rm = TRUE))
 Plot of the average number of steps, across all days:
 
 ```{r}
-avg_steps<-data.frame(cbind(activity$interval,tapply(activity$steps, activity$interval, mean, na.rm = TRUE)))
-colnames(avg_steps) <- c("interval","steps")
-plot<-ggplot(data=avg_steps,aes(x=interval,y=steps)) +
-  geom_line()
-print(plot)
+average_per_interval <- aggregate(list(data$steps), by = list(data$interval), FUN = mean, na.rm = TRUE)
+
+colnames(average_per_interval) <- c("Interval", "Average Steps")
+
+plot(average_per_interval, type="l")
+
+average_per_interval.max = average_per_interval[average_per_interval[2] == max(average_per_interval[2]), 1]
 ```
 
-The 5-minute interval which contains the maximum number of steps across all the days in the dataset is:
-
-```{r}
-maxtime<-avg_steps[which.max(avg_steps$steps),"interval"]
-strftime( as.POSIXct(Sys.Date()) + as.difftime(round(maxtime/100), units="hours")+ as.difftime(maxtime%%100, units="mins"), "%r",tz="UTC") 
-```
 
 ## Imputing missing values
 
 ```{r}
-sum(is.na(activity$steps))
+colSums(is.na(data))[1]
 ```
 
 I use the mean for 5-minute interval as replacement for the missing values.
 
 ```{r}
-fixed<-activity
-fixed[is.na(fixed[, 1]), 1]<-avg_steps[is.na(fixed[, 1]),2]
-```
+library(plyr)
 
-Histogram of the new dataset, which has the NAs replaced with the 5-minute means.
+na_replaced <- ddply(data, .(interval), transform, steps = ifelse(is.na(steps), round(mean(steps, na.rm=TRUE)), steps), digits = 0)
 
-```{r}
-qplot(date, weight=fixed$steps, data=fixed, geom="histogram")
-```
+new_total_per_day <- tapply(na_replaced$steps, na_replaced$date, sum)
 
-Calculate and report the mean and media values. We can see that the values differ from the initial calculation, and have higher value. It is also observed in the graph above. Most days have an increased number of mean of steps, since the NAs have been replaced by the 5-minute interval mean.
+hist(new_total_per_day, breaks = 15, main = "Frequency of Total Steps Taken Per Day (NAs Replaced)", xlab = "Total number of steps", col = "lightblue")
 
-```{r}
-mean(tapply(fixed$steps, fixed$date, sum, na.rm = TRUE))
-median(tapply(fixed$steps, fixed$date, sum, na.rm = TRUE))
+mean(new_total_per_day)
+
+median(new_total_per_day)
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
 ```{r}
+na_replaced$day <- ifelse(weekdays(as.Date(na_replaced$date)) == "Sunday", "Weekend", ifelse(weekdays(as.Date(na_replaced$date)) == "Saturday", "Weekend", "Weekday"))
+
+average_by_interval_and_day <- aggregate(steps ~ interval + day, data = na_replaced, mean)
+
 library(lattice)
-fixed$day<-as.factor(ifelse(weekdays(fixed$date) %in% c("Saturday","Sunday"),"Weekend","Weekday"))
+
+xyplot(average_by_interval_and_day$steps ~ average_by_interval_and_day$interval | average_by_interval_and_day$day, average_by_interval_and_day, layout = c(1, 2), type = "l", xlab = "Interval", ylab = "Steps")
+
 ```
 
-Plot the 5-minute average of steps, by weekday/weekend.
 
-```{r}
-xyplot(steps ~ interval | day, aggregate(steps ~ interval + day, fixed, FUN = mean), layout = c(1, 2), type = "l", group=day)
-```
