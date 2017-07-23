@@ -1,27 +1,20 @@
----
-title: "Reproducible Research: Course Project 1"
-output: 
-  html_document:
-    fig_caption: yes
-    keep_md: yes
----
+# Reproducible Research: Course Project 1
 
 ## Make sure all required packages are loaded.
 
-```{r loadpackages, echo = FALSE}
-library(ggplot2)
-library(knitr)
-```
+
 ## Loading and preprocessing the data
 
 * Load Data
-```{r load, echo=TRUE}
+
+```r
 unzip("activity.zip")
 data <- read.csv("activity.csv")
 ```
 
 * Process and prepare data for analysis
-```{r}
+
+```r
 dailySteps <- tapply(data$steps, data$date, sum)
 ```
 
@@ -30,27 +23,39 @@ dailySteps <- tapply(data$steps, data$date, sum)
 
 * Plot Histogram to visualise the total day by day steps:
 
-```{r}
+
+```r
 hist(dailySteps, breaks = 15, main = "Histogram - Total Steps Per Day", 
      xlab = "Total # Steps", col = "lightblue")
-
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-2-1.png)<!-- -->
 
 
 * The mean and median total number of steps taken per day.
-```{r}
 
+```r
 mean(dailySteps, na.rm = TRUE)
+```
 
+```
+## [1] 10766.19
+```
+
+```r
 median(dailySteps, na.rm = TRUE)
+```
 
+```
+## [1] 10765
 ```
 
 ## What is the average daily activity pattern?
 
 * Time Series Plot of the average number of steps, 5 minute interval and average across all days.
 
-```{r}
+
+```r
 avgInt <- aggregate(list(data$steps), 
                     by = list(data$interval), FUN = mean, na.rm = TRUE)
 
@@ -59,9 +64,16 @@ colnames(avgInt) <- c("Interval", "Average Steps")
 plot(avgInt, type="l")
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-4-1.png)<!-- -->
+
 * Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
-```{r}
+
+```r
 avgInt[avgInt[2] == max(avgInt[2]), 1]
+```
+
+```
+## [1] 835
 ```
 
 
@@ -71,8 +83,14 @@ avgInt[avgInt[2] == max(avgInt[2]), 1]
 ## Imputing missing values
 
 * Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
-```{r}
+
+```r
 colSums(is.na(data))[1]
+```
+
+```
+## steps 
+##  2304
 ```
 * Total rows are missing.
 
@@ -80,7 +98,8 @@ colSums(is.na(data))[1]
 
 * Create a new dataset that is equal to the original dataset but with the missing data filled in.
 
-```{r}
+
+```r
 library(plyr)
 rep_na <- ddply(data, .(interval), 
                 transform, steps = ifelse(is.na(steps), 
@@ -91,17 +110,32 @@ perDayT <- tapply(rep_na$steps, rep_na$date, sum)
 
 * Make a histogram of the total number of steps taken each day.
 
-```{r}
+
+```r
 hist(perDayT, breaks = 15, 
      main = "Daily Steps Taken Frequency (Null data Replaced)", 
      xlab = "Total Steps", col = "lightblue")
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-8-1.png)<!-- -->
+
 *  Calculate and report the **mean** and **median** total number of steps taken per day..
 
-```{r}
+
+```r
 mean(perDayT)
+```
+
+```
+## [1] 10765.64
+```
+
+```r
 median(perDayT)
+```
+
+```
+## [1] 10762
 ```
 * Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
@@ -113,7 +147,8 @@ The Mean and Median values are the same as the value before imputing the missing
 * Make a panel plot containing a time series plot (i.e. `type = "l"`) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). The plot should look something like the following, which was created using **simulated data**:
 
 
-```{r}
+
+```r
 rep_na$day <- ifelse(weekdays(as.Date(rep_na$date)) == "Sunday", "Weekend", ifelse(weekdays(as.Date(rep_na$date)) == "Saturday", "Weekend", "Weekday"))
 avgIntDay <- aggregate(steps ~ interval + day, data = rep_na, mean)
 
@@ -121,4 +156,6 @@ library(lattice)
 xyplot(avgIntDay$steps ~ avgIntDay$interval | avgIntDay$day, avgIntDay, 
        layout = c(1, 2), type = "l", xlab = "Interval", ylab = "Steps")
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
